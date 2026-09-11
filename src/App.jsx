@@ -24,7 +24,7 @@ const STORAGE_KEY = "ihgcodo-tesouraria-data";
 const AUTH_KEY = "ihgcodo-auth";
 const ADMIN_EMAIL = "alancbayma@gmail.com";
 // Hash SHA-256 da senha do admin — nunca a senha em texto puro.
-const ADMIN_PASSWORD_HASH = "ca241cdc39c6e851e9df12270257aec6ba88d826e03f5442502960253f132537";
+const ADMIN_PASSWORD_HASH = "430832f60483fc1aa4510528d1155ce9d2345ce4172d42c1be6bb5204977fd7a";
 
 async function sha256Hex(text) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
