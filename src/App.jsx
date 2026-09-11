@@ -75,22 +75,7 @@ const SEED_MEMBERS = [
   { name: "Socorro Quinzeiro", phone: "(99) 98140-6701" },
 ].map((m, i) => ({ id: `m${i + 1}`, ...m }));
 
-const SEED_TRANSACTIONS = [
-  { id: "t1", type: "entrada", description: "Saldo da conta", amount: 28055.16, date: "2026-07-01", category: "Receitas" },
-  { id: "t2", type: "entrada", description: "PMC Casa Civil", amount: 4442.66, date: "2026-07-20", category: "Receitas" },
-  { id: "t3", type: "saida", description: "Kairon Gomes da Silva", amount: 1600.00, date: "2026-07-09", category: "Salários" },
-  { id: "t4", type: "saida", description: "Tarifa Pix", amount: 8.50, date: "2026-07-09", category: "Serviços banco" },
-  { id: "t5", type: "saida", description: "Tarifa manutenção conta", amount: 73.00, date: "2026-07-27", category: "Serviços" },
-  { id: "t6", type: "saida", description: "Fernanda de Oliveira Rocha", amount: 2500.00, date: "2026-08-04", category: "Prestação de serviços" },
-  { id: "t7", type: "saida", description: "Tarifa Pix", amount: 8.50, date: "2026-08-04", category: "Serviços banco" },
-  { id: "t8", type: "saida", description: "Ana Thaissa Ferreira Oliveira", amount: 1500.00, date: "2026-08-10", category: "Prestação de serviços" },
-  { id: "t9", type: "saida", description: "Tarifa Pix", amount: 8.50, date: "2026-08-10", category: "Serviços banco" },
-  { id: "t10", type: "saida", description: "Impressora", amount: 958.64, date: "2026-08-12", category: "Compras" },
-  { id: "t11", type: "entrada", description: "PMC Casa Civil", amount: 4442.66, date: "2026-08-14", category: "Receitas" },
-  { id: "t12", type: "saida", description: "Valter Climatização", amount: 4803.30, date: "2026-08-19", category: "Prestação de serviços" },
-  { id: "t13", type: "saida", description: "Tarifa Pix", amount: 8.50, date: "2026-08-19", category: "Serviços banco" },
-  { id: "t14", type: "saida", description: "Tarifa manutenção conta", amount: 73.00, date: "2026-08-25", category: "Serviços" },
-];
+const SEED_TRANSACTIONS = [];
 
 const DEFAULT_DATA = {
   members: SEED_MEMBERS,
