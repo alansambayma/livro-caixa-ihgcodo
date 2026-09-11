@@ -37,13 +37,15 @@ function waLink(phone, message) {
   return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
 }
 
+const PIX_KEY = "13.443.649/0001-29";
+
 function cobrancaMessage(name, monthLabel, year, amount, tone) {
   const firstName = name.split(" ")[0];
   const valor = currency(amount);
   if (tone === "a_vencer") {
-    return `Olá, ${firstName}! Passando para lembrar que a mensalidade de ${monthLabel}/${year} do IHGCODÓ (${valor}) vence em breve. Qualquer dúvida, é só chamar por aqui. Obrigado por fazer parte da nossa história! 🙏`;
+    return `Olá, ${firstName}! Passando para lembrar que a mensalidade de ${monthLabel}/${year} do IHGCODÓ (${valor}) vence em breve. Chave Pix para pagamento: ${PIX_KEY}. Qualquer dúvida, é só chamar por aqui. Obrigado por fazer parte da nossa história! 🙏`;
   }
-  return `Olá, ${firstName}! Tudo bem? Passando para lembrar da mensalidade de ${monthLabel}/${year} do IHGCODÓ, no valor de ${valor}, que está em aberto. Se já tiver pago, pode desconsiderar. Qualquer dúvida, é só chamar por aqui. Obrigado por fazer parte da nossa história! 🙏`;
+  return `Olá, ${firstName}! Tudo bem? Passando para lembrar da mensalidade de ${monthLabel}/${year} do IHGCODÓ, no valor de ${valor}, que está em aberto. Chave Pix para pagamento: ${PIX_KEY}. Se já tiver pago, pode desconsiderar. Qualquer dúvida, é só chamar por aqui. Obrigado por fazer parte da nossa história! 🙏`;
 }
 
 const MONTHS = [
