@@ -1,0 +1,10 @@
+node_modules/
+dist/
+
+# Configuração e ferramentas locais do Claude Code, não fazem parte do app
+.claude/
+.agents/
+skills-lock.json
+
+# Pasta de outro projeto/handoff que não pertence a este app
+promptvault-handoff/
