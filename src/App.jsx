@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from "react";
-import bandeiraCodo from "./assets/bandeira-codo.png";
 import {
   Users,
   Wallet,
@@ -18,10 +17,10 @@ import {
   MessageCircle,
   LogOut,
   Lock,
+  Landmark,
 } from "lucide-react";
 
 const STORAGE_KEY = "ihgcodo-tesouraria-data";
-const AUTH_KEY = "ihgcodo-auth";
 const ADMIN_EMAIL = "alancbayma@gmail.com";
 // Hash SHA-256 da senha do admin — nunca a senha em texto puro.
 const ADMIN_PASSWORD_HASH = "430832f60483fc1aa4510528d1155ce9d2345ce4172d42c1be6bb5204977fd7a";
@@ -90,6 +89,18 @@ const DEFAULT_DATA = {
 function currency(v) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
 }
+// Formata uma string digitada como moeda BR (centavos entrando pela direita, ex: "12345" -> "123,45")
+function maskCurrencyInput(raw) {
+  const digits = (raw || "").replace(/\D/g, "");
+  const num = parseInt(digits || "0", 10) / 100;
+  return num.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+// Converte o texto mascarado ("1.234,56") de volta para número (1234.56)
+function parseMaskedCurrency(masked) {
+  const cleaned = (masked || "").replace(/\./g, "").replace(",", ".");
+  const v = parseFloat(cleaned);
+  return isNaN(v) ? 0 : v;
+}
 function fmtDate(iso) {
   if (!iso) return "";
   const [y, m, d] = iso.split("-");
@@ -132,15 +143,10 @@ function Stamp({ status }) {
 }
 
 export default function App() {
-  const [authed, setAuthed] = useState(() => localStorage.getItem(AUTH_KEY) === "1");
-  const [data, setData] = useState(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : DEFAULT_DATA;
-    } catch (e) {
-      return DEFAULT_DATA;
-    }
-  });
+  const [authed, setAuthed] = useState(false);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [tab, setTab] = useState("painel");
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
@@ -150,17 +156,40 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Carrega os dados do armazenamento compartilhado: todo mundo que abrir
+  // este app vê e edita os MESMOS dados (mensalidades, lançamentos etc).
   useEffect(() => {
-    if (!localStorage.getItem(STORAGE_KEY)) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DATA));
-    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const result = await window.storage.get(STORAGE_KEY, true);
+        if (cancelled) return;
+        if (result) {
+          setData(JSON.parse(result.value));
+        } else {
+          await window.storage.set(STORAGE_KEY, JSON.stringify(DEFAULT_DATA), true);
+          if (!cancelled) setData(DEFAULT_DATA);
+        }
+      } catch (e) {
+        console.error("Erro ao carregar dados", e);
+        if (!cancelled) {
+          setData(DEFAULT_DATA);
+          setLoadError(true);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  function persist(next) {
+  async function persist(next) {
     setData(next);
     setSaving(true);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      await window.storage.set(STORAGE_KEY, JSON.stringify(next), true);
     } catch (e) {
       console.error("Erro ao salvar", e);
     } finally {
@@ -169,7 +198,6 @@ export default function App() {
   }
 
   function logout() {
-    localStorage.removeItem(AUTH_KEY);
     setAuthed(false);
   }
 
@@ -209,6 +237,17 @@ export default function App() {
     const y = now.getFullYear(), mo = now.getMonth() + 1;
     return data.members.map((m) => ({ member: m, ...getStatus(m.id, y, mo, data.dueDay, data.payments) }));
   }, [data]);
+
+  if (loading) {
+    return (
+      <div className="ihg-root ihg-login">
+        <GlobalStyle />
+        <div className="login-box" style={{ alignItems: "center" }}>
+          <span className="login-brand">Carregando…</span>
+        </div>
+      </div>
+    );
+  }
 
   if (!authed) {
     return <LoginGate onSuccess={() => setAuthed(true)} />;
@@ -290,7 +329,7 @@ export default function App() {
       <div className="shell">
         <aside className="sidebar">
           <div className="brand">
-            <img src={bandeiraCodo} alt="Bandeira de Codó" className="logo-flag brand-flag" />
+            <div className="logo-flag brand-flag" aria-hidden="true"><Landmark size={18} color="var(--paper)" /></div>
             <div className="brand-text">
               <span className="brand-name">Finanças IHGC</span>
               <span className="brand-sub">Instituto Histórico e Geográfico de Codó</span>
@@ -311,7 +350,9 @@ export default function App() {
             <button className="sidebar-settings-btn" onClick={logout}>
               <LogOut size={15} /> Sair
             </button>
-            <span className="sync-status">{saving ? "salvando…" : "salvo neste navegador"}</span>
+            <span className="sync-status">
+              {saving ? "salvando…" : loadError ? "erro ao carregar dados" : "dados compartilhados"}
+            </span>
           </div>
         </aside>
 
@@ -574,7 +615,7 @@ function LoginGate({ onSuccess }) {
     <div className="ihg-root ihg-login">
       <GlobalStyle />
       <form className="login-box" onSubmit={handleSubmit}>
-        <img src={bandeiraCodo} alt="Bandeira de Codó" className="logo-flag" />
+        <div className="logo-flag" aria-hidden="true"><Landmark size={22} color="var(--paper)" /></div>
         <span className="login-brand">Finanças IHGC</span>
         <span className="login-sub">Instituto Histórico e Geográfico de Codó</span>
         <label className="login-field">
@@ -657,7 +698,7 @@ function TxForm({ onClose, onSave }) {
         className="form"
         onSubmit={(e) => {
           e.preventDefault();
-          const v = parseFloat(amount.replace(",", "."));
+          const v = parseMaskedCurrency(amount);
           if (!description.trim() || !v) return;
           onSave({ type, description: description.trim(), amount: v, date, category: category.trim() || (type === "entrada" ? "Receita" : "Despesa") });
           onClose();
@@ -674,7 +715,7 @@ function TxForm({ onClose, onSave }) {
         <label>Descrição<input value={description} onChange={(e) => setDescription(e.target.value)} required autoFocus /></label>
         <label>Categoria<input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="ex: Doação, Aluguel, Evento" /></label>
         <div className="row-2">
-          <label>Valor (R$)<input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder="0,00" required /></label>
+          <label>Valor (R$)<input value={amount} onChange={(e) => setAmount(maskCurrencyInput(e.target.value))} inputMode="decimal" placeholder="0,00" required /></label>
           <label>Data<input type="date" value={date} onChange={(e) => setDate(e.target.value)} required /></label>
         </div>
         <button type="submit" className="primary-btn">Lançar</button>
@@ -769,7 +810,7 @@ function GlobalStyle() {
       .brand-name { font-family: 'Libre Caslon Text', serif; font-weight: 700; font-size: 1.05rem; line-height: 1.2; letter-spacing: 0.3px; }
       .brand-sub { margin-top: 3px; font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; line-height: 1.4; opacity: 0.68; letter-spacing: 0.6px; text-transform: uppercase; }
 
-      .logo-flag { width: 38px; height: 38px; object-fit: cover; border-radius: 4px; border: 1px solid rgba(239,230,204,0.35); box-shadow: 0 1px 3px rgba(0,0,0,0.4); flex-shrink: 0; }
+      .logo-flag { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; background: var(--accent); border-radius: 4px; border: 1px solid rgba(239,230,204,0.35); box-shadow: 0 1px 3px rgba(0,0,0,0.4); flex-shrink: 0; }
 
       .side-nav { display: flex; flex-direction: column; gap: 2px; }
       .side-nav-btn {
