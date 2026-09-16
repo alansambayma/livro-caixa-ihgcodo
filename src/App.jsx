@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import bandeiraCodo from "./assets/bandeira-codo.png";
 import {
   Users,
   Wallet,
@@ -17,10 +18,10 @@ import {
   MessageCircle,
   LogOut,
   Lock,
-  Landmark,
 } from "lucide-react";
 
 const STORAGE_KEY = "ihgcodo-tesouraria-data";
+const AUTH_KEY = "ihgcodo-auth";
 const ADMIN_EMAIL = "alancbayma@gmail.com";
 // Hash SHA-256 da senha do admin — nunca a senha em texto puro.
 const ADMIN_PASSWORD_HASH = "ea01960cfc90e8a5bc830aa346febc6ba09369fdd7e810fd34295a4c0d603671";
@@ -143,10 +144,15 @@ function Stamp({ status }) {
 }
 
 export default function App() {
-  const [authed, setAuthed] = useState(false);
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  const [authed, setAuthed] = useState(() => localStorage.getItem(AUTH_KEY) === "1");
+  const [data, setData] = useState(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : DEFAULT_DATA;
+    } catch (e) {
+      return DEFAULT_DATA;
+    }
+  });
   const [tab, setTab] = useState("painel");
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
@@ -156,40 +162,17 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Carrega os dados do armazenamento compartilhado: todo mundo que abrir
-  // este app vê e edita os MESMOS dados (mensalidades, lançamentos etc).
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const result = await window.storage.get(STORAGE_KEY, true);
-        if (cancelled) return;
-        if (result) {
-          setData(JSON.parse(result.value));
-        } else {
-          await window.storage.set(STORAGE_KEY, JSON.stringify(DEFAULT_DATA), true);
-          if (!cancelled) setData(DEFAULT_DATA);
-        }
-      } catch (e) {
-        console.error("Erro ao carregar dados", e);
-        if (!cancelled) {
-          setData(DEFAULT_DATA);
-          setLoadError(true);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    if (!localStorage.getItem(STORAGE_KEY)) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DATA));
+    }
   }, []);
 
-  async function persist(next) {
+  function persist(next) {
     setData(next);
     setSaving(true);
     try {
-      await window.storage.set(STORAGE_KEY, JSON.stringify(next), true);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     } catch (e) {
       console.error("Erro ao salvar", e);
     } finally {
@@ -198,6 +181,7 @@ export default function App() {
   }
 
   function logout() {
+    localStorage.removeItem(AUTH_KEY);
     setAuthed(false);
   }
 
@@ -237,17 +221,6 @@ export default function App() {
     const y = now.getFullYear(), mo = now.getMonth() + 1;
     return data.members.map((m) => ({ member: m, ...getStatus(m.id, y, mo, data.dueDay, data.payments) }));
   }, [data]);
-
-  if (loading) {
-    return (
-      <div className="ihg-root ihg-login">
-        <GlobalStyle />
-        <div className="login-box" style={{ alignItems: "center" }}>
-          <span className="login-brand">Carregando…</span>
-        </div>
-      </div>
-    );
-  }
 
   if (!authed) {
     return <LoginGate onSuccess={() => setAuthed(true)} />;
@@ -329,7 +302,7 @@ export default function App() {
       <div className="shell">
         <aside className="sidebar">
           <div className="brand">
-            <div className="logo-flag brand-flag" aria-hidden="true"><Landmark size={18} color="var(--paper)" /></div>
+            <img src={bandeiraCodo} alt="Bandeira de Codó" className="logo-flag brand-flag" />
             <div className="brand-text">
               <span className="brand-name">Finanças IHGC</span>
               <span className="brand-sub">Instituto Histórico e Geográfico de Codó</span>
@@ -350,9 +323,7 @@ export default function App() {
             <button className="sidebar-settings-btn" onClick={logout}>
               <LogOut size={15} /> Sair
             </button>
-            <span className="sync-status">
-              {saving ? "salvando…" : loadError ? "erro ao carregar dados" : "dados compartilhados"}
-            </span>
+            <span className="sync-status">{saving ? "salvando…" : "salvo neste navegador"}</span>
           </div>
         </aside>
 
@@ -615,7 +586,7 @@ function LoginGate({ onSuccess }) {
     <div className="ihg-root ihg-login">
       <GlobalStyle />
       <form className="login-box" onSubmit={handleSubmit}>
-        <div className="logo-flag" aria-hidden="true"><Landmark size={22} color="var(--paper)" /></div>
+        <img src={bandeiraCodo} alt="Bandeira de Codó" className="logo-flag" />
         <span className="login-brand">Finanças IHGC</span>
         <span className="login-sub">Instituto Histórico e Geográfico de Codó</span>
         <label className="login-field">
@@ -636,6 +607,14 @@ function LoginGate({ onSuccess }) {
         <button type="submit" className="primary-btn" disabled={checking}>
           <Lock size={15} /> {checking ? "Verificando…" : "Entrar"}
         </button>
+        <a
+          className="forgot-link"
+          href={`mailto:${ADMIN_EMAIL}?subject=${encodeURIComponent("Redefinição de senha - Finanças IHGC")}&body=${encodeURIComponent(
+            "Olá,\n\nSolicito a redefinição da senha de acesso ao sistema Finanças IHGC.\n\nObrigado."
+          )}`}
+        >
+          Esqueceu a senha?
+        </a>
       </form>
     </div>
   );
@@ -795,6 +774,8 @@ function GlobalStyle() {
       .login-field input:disabled { background: var(--paper-card); color: var(--ink-light); }
       .login-error { color: var(--stamp-red); font-size: 0.82rem; margin-bottom: 10px; }
       .login-box .primary-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; }
+      .forgot-link { display: block; text-align: center; margin-top: 12px; font-size: 0.82rem; color: var(--muted, #8a8375); text-decoration: underline; cursor: pointer; }
+      .forgot-link:hover { color: var(--cover); }
 
       .shell { display: flex; min-height: 100vh; align-items: stretch; }
 
@@ -810,7 +791,7 @@ function GlobalStyle() {
       .brand-name { font-family: 'Libre Caslon Text', serif; font-weight: 700; font-size: 1.05rem; line-height: 1.2; letter-spacing: 0.3px; }
       .brand-sub { margin-top: 3px; font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; line-height: 1.4; opacity: 0.68; letter-spacing: 0.6px; text-transform: uppercase; }
 
-      .logo-flag { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; background: var(--accent); border-radius: 4px; border: 1px solid rgba(239,230,204,0.35); box-shadow: 0 1px 3px rgba(0,0,0,0.4); flex-shrink: 0; }
+      .logo-flag { width: 38px; height: 38px; object-fit: cover; border-radius: 4px; border: 1px solid rgba(239,230,204,0.35); box-shadow: 0 1px 3px rgba(0,0,0,0.4); flex-shrink: 0; }
 
       .side-nav { display: flex; flex-direction: column; gap: 2px; }
       .side-nav-btn {
