@@ -24,7 +24,7 @@ const STORAGE_KEY = "ihgcodo-tesouraria-data";
 const AUTH_KEY = "ihgcodo-auth";
 const ADMIN_EMAIL = "alancbayma@gmail.com";
 // Hash SHA-256 da senha do admin — nunca a senha em texto puro.
-const ADMIN_PASSWORD_HASH = "ea01960cfc90e8a5bc830aa346febc6ba09369fdd7e810fd34295a4c0d603671";
+const ADMIN_PASSWORD_HASH = "430832f60483fc1aa4510528d1155ce9d2345ce4172d42c1be6bb5204977fd7a";
 
 async function sha256Hex(text) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
@@ -89,18 +89,6 @@ const DEFAULT_DATA = {
 
 function currency(v) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
-}
-// Formata uma string digitada como moeda BR (centavos entrando pela direita, ex: "12345" -> "123,45")
-function maskCurrencyInput(raw) {
-  const digits = (raw || "").replace(/\D/g, "");
-  const num = parseInt(digits || "0", 10) / 100;
-  return num.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-// Converte o texto mascarado ("1.234,56") de volta para número (1234.56)
-function parseMaskedCurrency(masked) {
-  const cleaned = (masked || "").replace(/\./g, "").replace(",", ".");
-  const v = parseFloat(cleaned);
-  return isNaN(v) ? 0 : v;
 }
 function fmtDate(iso) {
   if (!iso) return "";
@@ -607,14 +595,6 @@ function LoginGate({ onSuccess }) {
         <button type="submit" className="primary-btn" disabled={checking}>
           <Lock size={15} /> {checking ? "Verificando…" : "Entrar"}
         </button>
-        <a
-          className="forgot-link"
-          href={`mailto:${ADMIN_EMAIL}?subject=${encodeURIComponent("Redefinição de senha - Finanças IHGC")}&body=${encodeURIComponent(
-            "Olá,\n\nSolicito a redefinição da senha de acesso ao sistema Finanças IHGC.\n\nObrigado."
-          )}`}
-        >
-          Esqueceu a senha?
-        </a>
       </form>
     </div>
   );
@@ -677,7 +657,7 @@ function TxForm({ onClose, onSave }) {
         className="form"
         onSubmit={(e) => {
           e.preventDefault();
-          const v = parseMaskedCurrency(amount);
+          const v = parseFloat(amount.replace(",", "."));
           if (!description.trim() || !v) return;
           onSave({ type, description: description.trim(), amount: v, date, category: category.trim() || (type === "entrada" ? "Receita" : "Despesa") });
           onClose();
@@ -694,7 +674,7 @@ function TxForm({ onClose, onSave }) {
         <label>Descrição<input value={description} onChange={(e) => setDescription(e.target.value)} required autoFocus /></label>
         <label>Categoria<input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="ex: Doação, Aluguel, Evento" /></label>
         <div className="row-2">
-          <label>Valor (R$)<input value={amount} onChange={(e) => setAmount(maskCurrencyInput(e.target.value))} inputMode="decimal" placeholder="0,00" required /></label>
+          <label>Valor (R$)<input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder="0,00" required /></label>
           <label>Data<input type="date" value={date} onChange={(e) => setDate(e.target.value)} required /></label>
         </div>
         <button type="submit" className="primary-btn">Lançar</button>
@@ -774,8 +754,6 @@ function GlobalStyle() {
       .login-field input:disabled { background: var(--paper-card); color: var(--ink-light); }
       .login-error { color: var(--stamp-red); font-size: 0.82rem; margin-bottom: 10px; }
       .login-box .primary-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; }
-      .forgot-link { display: block; text-align: center; margin-top: 12px; font-size: 0.82rem; color: var(--muted, #8a8375); text-decoration: underline; cursor: pointer; }
-      .forgot-link:hover { color: var(--cover); }
 
       .shell { display: flex; min-height: 100vh; align-items: stretch; }
 
